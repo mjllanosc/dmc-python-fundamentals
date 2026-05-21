@@ -23,7 +23,7 @@ def mostrar_home():
     st.title("Proyecto Aplicado: DMC Python Fundamentals")
     
     # Logo
-    st.image("logo_dmc_institute.png", width=300)
+    st.image("resources/logo_dmc_institute.png", width=300)
     
     st.divider()
     
@@ -51,8 +51,84 @@ def mostrar_home():
     st.markdown("- 🐍 Python\n- 🎈 Streamlit\n- 🐼 Pandas\n- 🔢 NumPy")
 
 def mostrar_ejercicio_1():
-    st.title("Ejercicio 1")
-    st.write("Módulo independiente para el Ejercicio 1.")
+    st.subheader("Ejercicio 1 – Flujo de caja con listas")
+    
+    st.markdown("""
+    **Descripción del ejercicio:**
+    En este módulo puedes registrar movimientos financieros. Ingresa el concepto, 
+    selecciona el tipo de movimiento (Ingreso o Gasto) y define el valor. 
+    Todos los registros se irán almacenando en una lista, permitiendo calcular 
+    los totales y evaluar si el flujo de caja está a favor o en contra.
+    """)
+    
+    st.divider()
+    
+    # Inicializar la lista en session_state para persistencia
+    if 'flujo_caja' not in st.session_state:
+        st.session_state.flujo_caja = []
+        
+    st.markdown("### Registrar Nuevo Movimiento")
+    
+    # Widgets para ingresar los datos
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        concepto = st.text_input("Concepto del movimiento:")
+    with col2:
+        tipo_movimiento = st.selectbox("Tipo de movimiento:", ["Ingreso", "Gasto"])
+    with col3:
+        valor = st.number_input("Valor ($):", min_value=0.0, step=10.0, format="%.2f")
+        
+    # Botón para agregar movimientos
+    if st.button("Agregar Movimiento"):
+        if concepto.strip() == "":
+            st.warning("Por favor, ingresa un concepto válido.")
+        elif valor <= 0:
+            st.warning("Por favor, ingresa un valor mayor a 0.")
+        else:
+            movimiento = {
+                "Concepto": concepto,
+                "Tipo": tipo_movimiento,
+                "Valor": valor
+            }
+            st.session_state.flujo_caja.append(movimiento)
+            st.success(f"Movimiento '{concepto}' agregado correctamente.")
+            
+    st.divider()
+    
+    # Si hay movimientos registrados
+    if st.session_state.flujo_caja:
+        st.markdown("### Registro de Movimientos")
+        
+        # Mostrar la tabla de movimientos
+        df_flujo = pd.DataFrame(st.session_state.flujo_caja)
+        st.dataframe(df_flujo, use_container_width=True)
+        
+        # Cálculos de ingresos, gastos y saldo
+        total_ingresos = sum(item["Valor"] for item in st.session_state.flujo_caja if item["Tipo"] == "Ingreso")
+        total_gastos = sum(item["Valor"] for item in st.session_state.flujo_caja if item["Tipo"] == "Gasto")
+        saldo_final = total_ingresos - total_gastos
+        
+        st.markdown("### Resumen Financiero")
+        col_ing, col_gas, col_sal = st.columns(3)
+        
+        with col_ing:
+            st.metric(label="Total Ingresos", value=f"${total_ingresos:.2f}")
+        with col_gas:
+            st.metric(label="Total Gastos", value=f"${total_gastos:.2f}")
+        with col_sal:
+            st.metric(label="Saldo Final", value=f"${saldo_final:.2f}")
+            
+        st.write("") # Espaciador
+        
+        # Resultado final del flujo de caja
+        if saldo_final > 0:
+            st.success("✅ El flujo de caja está a favor.")
+        elif saldo_final < 0:
+            st.error("❌ El flujo de caja está en contra.")
+        else:
+            st.info("⚖️ El flujo de caja está balanceado (Saldo 0).")
+    else:
+        st.info("No hay movimientos registrados. Agrega uno para comenzar.")
 
 def mostrar_ejercicio_2():
     st.title("Ejercicio 2")
