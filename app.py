@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 def main():
     st.set_page_config(page_title="DMC Python Fundamentals", layout="wide")
@@ -131,8 +132,63 @@ def mostrar_ejercicio_1():
         st.info("No hay movimientos registrados. Agrega uno para comenzar.")
 
 def mostrar_ejercicio_2():
-    st.title("Ejercicio 2")
-    st.write("Módulo independiente para el Ejercicio 2.")
+    st.subheader("Ejercicio 2 – Registro con NumPy, arrays y DataFrame")
+    
+    st.markdown("""
+    **Descripción del ejercicio:**
+    En este formulario puedes registrar productos o ventas. La información ingresada 
+    se almacena temporalmente y se procesa utilizando arreglos de **NumPy** para luego 
+    convertirse en un **DataFrame** de Pandas.
+    """)
+    
+    st.divider()
+    
+    # Inicializar la lista en session_state para recolectar los datos antes de convertirlos a array
+    if 'registro_productos' not in st.session_state:
+        st.session_state.registro_productos = []
+        
+    st.markdown("### Formulario de Registro")
+    
+    # Widgets para ingresar los datos
+    col1, col2 = st.columns(2)
+    with col1:
+        nombre_producto = st.text_input("Nombre del producto:")
+        categoria = st.selectbox("Categoría:", ["Electrónica", "Ropa", "Alimentos", "Hogar", "Otros"])
+    with col2:
+        precio = st.number_input("Precio ($):", min_value=0.0, step=1.0, format="%.2f")
+        cantidad = st.number_input("Cantidad:", min_value=1, step=1)
+        
+    # Botón para agregar registro
+    if st.button("Agregar Registro"):
+        if nombre_producto.strip() == "":
+            st.warning("Por favor, ingresa el nombre del producto.")
+        elif precio <= 0:
+            st.warning("Por favor, ingresa un precio mayor a 0.")
+        else:
+            total = precio * cantidad
+            
+            # Se guarda el registro en la lista
+            nuevo_registro = [nombre_producto, categoria, precio, cantidad, total]
+            st.session_state.registro_productos.append(nuevo_registro)
+            st.success(f"Producto '{nombre_producto}' agregado exitosamente.")
+            
+    st.divider()
+    
+    # Si hay registros, los mostramos
+    if st.session_state.registro_productos:
+        st.markdown("### Tabla de Productos Registrados")
+        
+        # 1. Almacenar la información en un array de NumPy (dtype=object permite mezclar strings y números)
+        arreglo_numpy = np.array(st.session_state.registro_productos, dtype=object)
+        
+        # 2. Convertir el array de NumPy en un DataFrame actualizado
+        columnas = ["Producto", "Categoría", "Precio ($)", "Cantidad", "Total ($)"]
+        df_productos = pd.DataFrame(arreglo_numpy, columns=columnas)
+        
+        # 3. Mostrar la tabla en DataFrame
+        st.dataframe(df_productos, use_container_width=True)
+    else:
+        st.info("Aún no hay registros. Agrega un producto para ver la tabla.")
 
 def mostrar_ejercicio_3():
     st.title("Ejercicio 3")
