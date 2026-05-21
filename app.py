@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from libreria_funciones_proyecto1 import calcular_ratio_endeudamiento
+from libreria_clases_proyecto1 import ProyectoInversion
 
 def main():
     st.set_page_config(page_title="DMC Python Fundamentals", layout="wide")
@@ -256,8 +257,152 @@ def mostrar_ejercicio_3():
         st.info("Aún no hay cálculos realizados. Ejecuta la función para ver el histórico.")
 
 def mostrar_ejercicio_4():
-    st.title("Ejercicio 4")
-    st.write("Módulo independiente para el Ejercicio 4.")
+    st.subheader("Ejercicio 4 – Uso de clases desde una librería externa con CRUD")
+    
+    st.markdown("""
+    **Descripción del ejercicio:**
+    En este ejercicio utilizamos la clase `ProyectoInversion` del módulo de Finanzas. 
+    Se implementan operaciones básicas CRUD (Crear, Leer, Actualizar, Eliminar) 
+    para gestionar una lista de proyectos de inversión.
+    """)
+    
+    st.divider()
+    
+    # Inicializar la lista de proyectos en session_state (diccionario para facilitar búsqueda y actualización)
+    if 'proyectos_inversion' not in st.session_state:
+        st.session_state.proyectos_inversion = {}
+        
+    tab_crear, tab_leer, tab_actualizar, tab_eliminar = st.tabs(["Crear", "Leer", "Actualizar", "Eliminar"])
+    
+    # --- C: CREAR ---
+    with tab_crear:
+        st.markdown("### Crear Nuevo Proyecto")
+        with st.form("form_crear_proyecto"):
+            nombre_proyecto = st.text_input("Nombre del Proyecto:")
+            inversion_inicial = st.number_input("Inversión Inicial ($):", min_value=1.0, step=1000.0, format="%.2f")
+            flujos_str = st.text_input("Flujos de Caja (separados por coma, ej: 1000, 2000, 3000):")
+            tasa_descuento_pct = st.number_input("Tasa de Descuento (%):", min_value=0.0, max_value=100.0, step=1.0, format="%.2f")
+            
+            submit_crear = st.form_submit_button("Crear Proyecto")
+            
+            if submit_crear:
+                if not nombre_proyecto.strip():
+                    st.warning("Por favor, ingresa el nombre del proyecto.")
+                elif nombre_proyecto in st.session_state.proyectos_inversion:
+                    st.warning("Ya existe un proyecto con este nombre.")
+                else:
+                    try:
+                        # Procesar flujos
+                        flujos = [float(f.strip()) for f in flujos_str.split(',') if f.strip()]
+                        if not flujos:
+                            st.warning("Por favor, ingresa al menos un flujo de caja.")
+                        else:
+                            # Instanciar la clase y guardar en session_state
+                            nuevo_proyecto = ProyectoInversion(nombre_proyecto, inversion_inicial, flujos, tasa_descuento_pct)
+                            st.session_state.proyectos_inversion[nombre_proyecto] = nuevo_proyecto
+                            st.success(f"Proyecto '{nombre_proyecto}' creado exitosamente.")
+                    except ValueError as e:
+                        st.error(f"Error en los datos ingresados: {e}")
+
+    # --- R: LEER ---
+    with tab_leer:
+        st.markdown("### Listado de Proyectos Registrados")
+        if st.session_state.proyectos_inversion:
+            datos_proyectos = []
+            for nombre, proyecto in st.session_state.proyectos_inversion.items():
+                resumen = proyecto.resumen()
+                # Añadimos los datos de entrada al resumen para tener la vista completa
+                resumen["inversion_inicial"] = proyecto.inversion_inicial
+                resumen["flujos"] = str(proyecto.flujos)
+                resumen["tasa_descuento_pct"] = proyecto.tasa_descuento_pct
+                
+                # Reorganizar el diccionario para una mejor visualización en el DataFrame
+                fila = {
+                    "Proyecto": resumen["proyecto"],
+                    "Inversión Inicial ($)": resumen["inversion_inicial"],
+                    "Flujos": resumen["flujos"],
+                    "Tasa Desc. (%)": resumen["tasa_descuento_pct"],
+                    "VPN ($)": resumen["vpn"],
+                    "ROI (%)": resumen["roi_pct"],
+                    "Payback (Años)": resumen["payback_anios"],
+                    "Decisión": resumen["decision"]
+                }
+                datos_proyectos.append(fila)
+                
+            df_proyectos = pd.DataFrame(datos_proyectos)
+            st.dataframe(df_proyectos, use_container_width=True)
+        else:
+            st.info("No hay proyectos registrados. Ve a la pestaña 'Crear' para agregar uno.")
+
+    # --- U: ACTUALIZAR ---
+    with tab_actualizar:
+        st.markdown("### Actualizar Proyecto Existente")
+        if st.session_state.proyectos_inversion:
+            nombres_proyectos = list(st.session_state.proyectos_inversion.keys())
+            proyecto_seleccionado = st.selectbox("Selecciona un proyecto para actualizar:", nombres_proyectos)
+            
+            # Cargar datos actuales del proyecto
+            proyecto_actual = st.session_state.proyectos_inversion[proyecto_seleccionado]
+            
+            with st.form("form_actualizar_proyecto"):
+                nueva_inversion_inicial = st.number_input(
+                    "Nueva Inversión Inicial ($):", 
+                    min_value=1.0, 
+                    value=float(proyecto_actual.inversion_inicial), 
+                    step=1000.0, 
+                    format="%.2f"
+                )
+                
+                nuevos_flujos_str = st.text_input(
+                    "Nuevos Flujos de Caja (separados por coma):", 
+                    value=", ".join(map(str, proyecto_actual.flujos))
+                )
+                
+                nueva_tasa_descuento_pct = st.number_input(
+                    "Nueva Tasa de Descuento (%):", 
+                    min_value=0.0, 
+                    max_value=100.0, 
+                    value=float(proyecto_actual.tasa_descuento_pct), 
+                    step=1.0, 
+                    format="%.2f"
+                )
+                
+                submit_actualizar = st.form_submit_button("Actualizar Proyecto")
+                
+                if submit_actualizar:
+                    try:
+                        nuevos_flujos = [float(f.strip()) for f in nuevos_flujos_str.split(',') if f.strip()]
+                        if not nuevos_flujos:
+                            st.warning("Por favor, ingresa al menos un flujo de caja.")
+                        else:
+                            # Sobrescribir la instancia con los nuevos valores
+                            proyecto_actualizado = ProyectoInversion(
+                                proyecto_seleccionado, 
+                                nueva_inversion_inicial, 
+                                nuevos_flujos, 
+                                nueva_tasa_descuento_pct
+                            )
+                            st.session_state.proyectos_inversion[proyecto_seleccionado] = proyecto_actualizado
+                            st.success(f"Proyecto '{proyecto_seleccionado}' actualizado exitosamente.")
+                            st.rerun() # Recargar la página para actualizar las otras pestañas
+                    except ValueError as e:
+                        st.error(f"Error en los datos ingresados: {e}")
+        else:
+            st.info("No hay proyectos para actualizar.")
+
+    # --- D: ELIMINAR ---
+    with tab_eliminar:
+        st.markdown("### Eliminar Proyecto")
+        if st.session_state.proyectos_inversion:
+            nombres_proyectos_eliminar = list(st.session_state.proyectos_inversion.keys())
+            proyecto_a_eliminar = st.selectbox("Selecciona un proyecto para eliminar:", nombres_proyectos_eliminar)
+            
+            if st.button("Eliminar Proyecto", type="primary"):
+                del st.session_state.proyectos_inversion[proyecto_a_eliminar]
+                st.success(f"Proyecto '{proyecto_a_eliminar}' eliminado exitosamente.")
+                st.rerun() # Recargar para actualizar los selectores y tablas
+        else:
+            st.info("No hay proyectos para eliminar.")
 
 if __name__ == "__main__":
     main()
