@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from libreria_funciones_proyecto1 import calcular_ratio_endeudamiento
 
 def main():
     st.set_page_config(page_title="DMC Python Fundamentals", layout="wide")
@@ -191,8 +192,67 @@ def mostrar_ejercicio_2():
         st.info("Aún no hay registros. Agrega un producto para ver la tabla.")
 
 def mostrar_ejercicio_3():
-    st.title("Ejercicio 3")
-    st.write("Módulo independiente para el Ejercicio 3.")
+    st.subheader("Ejercicio 3 – Uso de funciones desde una librería externa")
+    
+    st.markdown("""
+    **Descripción del ejercicio:**
+    En esta sección nos conectamos con la función `calcular_ratio_endeudamiento` del módulo de Finanzas 
+    incluido en `libreria_funciones_proyecto1.py`. Ingresa los parámetros correspondientes para ejecutar 
+    el cálculo y mantén un registro histórico de los resultados obtenidos.
+    """)
+    
+    st.divider()
+    
+    # 1. Selector de función (tal como se solicitó para contextualizar, aunque se usará específicamente una)
+    st.markdown("### Selección y Ejecución de Función")
+    funcion_seleccionada = st.selectbox("Seleccione la función a ejecutar:", ["5) FINANZAS - calcular_ratio_endeudamiento"])
+    
+    # Inicializar la lista histórica en session_state
+    if 'historico_resultados' not in st.session_state:
+        st.session_state.historico_resultados = []
+        
+    # 2 y 3. Widgets para ingresar parámetros
+    col1, col2 = st.columns(2)
+    with col1:
+        empresa = st.text_input("Nombre de la Empresa / Contexto:")
+        pasivo_total = st.number_input("Pasivo Total ($):", min_value=0.0, step=1000.0, format="%.2f")
+    with col2:
+        activo_total = st.number_input("Activo Total ($):", min_value=0.01, step=1000.0, format="%.2f")
+        
+    # 4. Botón para ejecutar
+    if st.button("Ejecutar Cálculo"):
+        if not empresa.strip():
+            st.warning("Por favor, ingresa el nombre de la empresa.")
+        else:
+            try:
+                # 5. Ejecutar la función y mostrar el resultado en pantalla
+                resultado = calcular_ratio_endeudamiento(pasivo_total, activo_total)
+                ratio_pct = resultado["ratio_endeudamiento_pct"]
+                
+                st.success(f"Cálculo exitoso para **{empresa}**.")
+                st.write(f"**Ratio de Endeudamiento:** {ratio_pct}%")
+                
+                # 6. Guardar en histórico de resultados
+                nuevo_registro = {
+                    "Empresa": empresa,
+                    "Pasivo Total ($)": pasivo_total,
+                    "Activo Total ($)": activo_total,
+                    "Ratio de Endeudamiento (%)": ratio_pct
+                }
+                st.session_state.historico_resultados.append(nuevo_registro)
+                
+            except ValueError as e:
+                st.error(f"Error en el cálculo: {e}")
+                
+    st.divider()
+    
+    # Mostrar tabla histórica
+    if st.session_state.historico_resultados:
+        st.markdown("### Histórico de Resultados")
+        df_historico = pd.DataFrame(st.session_state.historico_resultados)
+        st.dataframe(df_historico, use_container_width=True)
+    else:
+        st.info("Aún no hay cálculos realizados. Ejecuta la función para ver el histórico.")
 
 def mostrar_ejercicio_4():
     st.title("Ejercicio 4")
