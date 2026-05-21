@@ -40,6 +40,7 @@ def mostrar_home():
         st.write("**Nombre Completo:** Merwin Johel Llanos Cueva")
         st.write("**Módulo:** Python Fundamentals")
         st.write("**Año:** 2026")
+        st.write("**Repositorio:** [GitHub - dmc-python-fundamentals](https://github.com/mjllanosc/dmc-python-fundamentals)")
         
         st.markdown("#### Sobre mí")
         st.write("Soy una persona muy curiosa en la tecnología y las novedades, siempre dispuesta a explorar nuevas herramientas y enfoques.\nMe apasiona aprender continuamente y aplicar estos conocimientos en proyectos prácticos e innovadores.")
